@@ -242,14 +242,18 @@ get_ipv6_address(const char *name, struct in6_addr *in6)
                              "classid %x:%x htb rate %dkbit ceil %dkbit"
 #define COMMAND_DEL_CLASS "/sbin/tc class del dev %s parent %x:%x classid %x:%x"
 
+#define COMMAND_ADD_DEV_QDISC_PRIO "/sbin/tc qdisc add dev %s " \
+                              "root handle %x: prio"
+
+
 static int
 netdev_setup_root_class(const struct netdev *netdev, uint16_t class_id,
                         uint16_t rate)
-{
+{   /* 
     char command[1024];
     int actual_rate;
 
-    /* we need to translate from .1% to kbps */
+    //we need to translate from .1% to kbps 
     actual_rate = rate*netdev->speed;
 
     snprintf(command, sizeof(command), COMMAND_ADD_CLASS, netdev->name,
@@ -259,7 +263,7 @@ netdev_setup_root_class(const struct netdev *netdev, uint16_t class_id,
                  class_id, netdev->name);
         return -1;
     }
-
+    */
     return 0;
 }
 
@@ -277,11 +281,11 @@ netdev_setup_root_class(const struct netdev *netdev, uint16_t class_id,
 int
 netdev_setup_class(const struct netdev *netdev, uint16_t class_id,
                    uint16_t rate)
-{
+{   /*
     char command[1024];
     int actual_rate;
 
-    /* we need to translate from .1% to kbps */
+    // we need to translate from .1% to kbps 
     actual_rate = rate*netdev->speed;
 
     snprintf(command, sizeof(command), COMMAND_ADD_CLASS, netdev->name,
@@ -292,7 +296,7 @@ netdev_setup_class(const struct netdev *netdev, uint16_t class_id,
                  netdev->name);
         return -1;
     }
-
+    */
     return 0;
 }
 
@@ -309,10 +313,11 @@ netdev_setup_class(const struct netdev *netdev, uint16_t class_id,
 int
 netdev_change_class(const struct netdev *netdev, uint16_t class_id, uint16_t rate)
 {
+    /*
     char command[1024];
     int actual_rate;
 
-    /* we need to translate from .1% to kbps */
+   // we need to translate from .1% to kbps 
     actual_rate = rate*netdev->speed;
 
     snprintf(command, sizeof(command), COMMAND_CHANGE_CLASS, netdev->name,
@@ -323,7 +328,7 @@ netdev_change_class(const struct netdev *netdev, uint16_t class_id, uint16_t rat
                  class_id, netdev->name);
         return -1;
     }
-
+    */
     return 0;
 }
 
@@ -338,6 +343,7 @@ netdev_change_class(const struct netdev *netdev, uint16_t class_id, uint16_t rat
 int
 netdev_delete_class(const struct netdev *netdev, uint16_t class_id)
 {
+    /*
     char command[1024];
 
     snprintf(command, sizeof(command), COMMAND_DEL_CLASS, netdev->name,
@@ -347,7 +353,7 @@ netdev_delete_class(const struct netdev *netdev, uint16_t class_id)
                  netdev->name);
         return -1;
     }
-
+    */
     return 0;
 }
 
@@ -427,6 +433,8 @@ open_queue_socket(const char * name, uint16_t class_id, int * fd)
  * @return 0 on success, non-zero value when the configuration was not
  * successful.
  */
+
+ /*
 static int
 do_setup_qdisc(const char *netdev_name)
 {
@@ -437,7 +445,25 @@ do_setup_qdisc(const char *netdev_name)
              TC_QDISC, TC_DEFAULT_CLASS);
     error = system(command);
     if (error) {
-        VLOG_WARN(LOG_MODULE, "Problem configuring qdisc for device %s",netdev_name);
+        VLOG_WARN(LOG_MODULE, "Problem configuring htb qdisc for device %s",netdev_name);
+        return error;
+    }
+    return 0;
+}
+*/
+
+//netdev_name= ethX , TC_QDISC=0x001
+static int
+do_setup_qdisc_prio(const char *netdev_name)
+{
+    char command[1024];
+    int error;
+
+    snprintf(command, sizeof(command), COMMAND_ADD_DEV_QDISC_PRIO, netdev_name,
+             TC_QDISC);
+    error = system(command);
+    if (error) {
+        VLOG_WARN(LOG_MODULE, "Problem configuring prio qdisc for device %s",netdev_name);
         return error;
     }
     return 0;
@@ -481,7 +507,7 @@ netdev_setup_slicing(struct netdev *netdev, uint16_t num_queues)
     }
 
     /* Configure tc queue discipline to allow slicing queues */
-    error = do_setup_qdisc(netdev->name);
+    error = do_setup_qdisc_prio(netdev->name);
     if (error) {
         return error;
     }
@@ -489,20 +515,20 @@ netdev_setup_slicing(struct netdev *netdev, uint16_t num_queues)
     /* This define a root class for the queue disc. In order to allow spare
      * bandwidth to be used efficiently, we need all the classes under a root
      * class. For details, refer to :
-     * http://luxik.cdi.cz/~devik/qos/htb/ */
+     * http://luxik.cdi.cz/~devik/qos/htb/ 
     error = netdev_setup_root_class(netdev, TC_ROOT_CLASS,1000);
     if (error) {
         return error;
     }
-    /* we configure a default class. This would be the best-effort, getting
+     * we configure a default class. This would be the best-effort, getting
      * everything that remains from the other queues.tc requires a min-rate
-     * to configure a class, we put a min_rate here */
+     * to configure a class, we put a min_rate here 
     error = netdev_setup_class(netdev,TC_DEFAULT_CLASS,1);
     if (error) {
         return error;
     }
 
-    /* the tc backend has been configured. Now, we need to create sockets that
+     * the tc backend has been configured. Now, we need to create sockets that
      * match the queue configuration. We need one socket per queue, plus one
      * for default traffic.
      * queue-attached sockets are only for outgoing traffic. Data are received
@@ -956,7 +982,7 @@ netdev_link_state(struct netdev *netdev)
                      netdev_set_flags(netdev, flags, false);
                      return NETDEV_LINK_DOWN;
                  }
-	     }
+         }
          }
      } while (len < 0 && errno == EINTR);
      return NETDEV_LINK_NO_CHANGE;

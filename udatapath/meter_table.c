@@ -106,7 +106,8 @@ meter_table_apply(struct meter_table *table, struct packet **packet, uint32_t me
         return;
     }
 
-   meter_entry_apply(entry, packet);
+   //meter_entry_apply(entry, packet);
+    meter_entry_apply_simpler(entry, packet);
 }
 
 
@@ -334,11 +335,11 @@ meter_table_handle_features_request(struct meter_table *table,
 
 void 
 meter_table_add_tokens(struct meter_table *table){
-
+    /*
     struct meter_entry *entry;
     HMAP_FOR_EACH(entry, struct meter_entry, node, &table->meter_entries){
         refill_bucket(entry);
-    }
+    }*/
 
 }
 
